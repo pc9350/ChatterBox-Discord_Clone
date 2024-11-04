@@ -38,7 +38,7 @@ CLERK_WEBHOOK_SECRET=your_clerk_webhook_secret
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/pc9350/Discord_Clone.git
+   git clone https://github.com/pc9350/ChatterBox-Discord_Clone.git
    ```
 2. Install dependencies:
    ```bash
