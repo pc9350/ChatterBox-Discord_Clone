@@ -44,11 +44,24 @@ export default function MessagePage({
         <h1 className="font-semibold">{directMessage.user.username}</h1>
       </header>
       <ScrollArea className="h-full py-4">
-        {messages?.map((message) => <MessageItem key={message._id} message={message} />)}
+        {messages?.map((message) => (
+          <MessageItem key={message._id} message={message} />
+        ))}
       </ScrollArea>
+      <TypingIndicator directMessage={id} />
       <MessageInput directMessage={id} />
     </div>
   );
+}
+
+function TypingIndicator({directMessage}: {directMessage: Id<"directMessages">}) {
+    const usernames = useQuery(api.functions.typing.list, {
+        directMessage,
+    });
+    if (!usernames || usernames.length === 0) return null;
+    return <div className="text-sm text-muted-foreground px-4 py-2">
+        {usernames.join(", ")} is typing...
+    </div>
 }
 
 type Message = FunctionReturnType<typeof api.functions.message.list>[number];
@@ -83,7 +96,10 @@ function MessageActions({ message }: { message: Message }) {
         <span className="sr-only">Message Actions</span>
       </DropdownMenuTrigger>
       <DropdownMenuContent>
-        <DropdownMenuItem className="text-destructive" onClick={() => removeMutation({ id: message._id })}>
+        <DropdownMenuItem
+          className="text-destructive"
+          onClick={() => removeMutation({ id: message._id })}
+        >
           <TrashIcon />
           Delete
         </DropdownMenuItem>
@@ -92,9 +108,14 @@ function MessageActions({ message }: { message: Message }) {
   );
 }
 
-function MessageInput({ directMessage }: { directMessage: Id<"directMessages"> }) {
+function MessageInput({
+  directMessage,
+}: {
+  directMessage: Id<"directMessages">;
+}) {
   const [content, setContent] = useState("");
   const sendMessage = useMutation(api.functions.message.create);
+  const sendTypingIndicator = useMutation(api.functions.typing.upsert);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -103,14 +124,24 @@ function MessageInput({ directMessage }: { directMessage: Id<"directMessages"> }
       setContent("");
     } catch (error) {
       toast.error("Failed to send message", {
-        description: error instanceof Error ? error.message : "An unknown error occured",
+        description:
+          error instanceof Error ? error.message : "An unknown error occured",
       });
     }
   };
 
   return (
     <form className="flex items-center gap-2 p-4" onSubmit={handleSubmit}>
-      <Input placeholder="Message" value={content} onChange={(e) => setContent(e.target.value)} />
+      <Input
+        placeholder="Message"
+        value={content}
+        onChange={(e) => setContent(e.target.value)}
+        onKeyDown={(e) => {
+          if (content.length > 0) {
+            sendTypingIndicator({ directMessage });
+          }
+        }}
+      />
       <Button size="icon">
         <SendIcon />
         <span className="sr-only">Send</span>
