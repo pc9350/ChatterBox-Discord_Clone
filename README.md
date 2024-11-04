@@ -22,6 +22,17 @@ This project is a Discord clone, built with a modern tech stack to emulate the c
 - **Custom UI**: Styled with Tailwind and shadcn for a visually appealing and responsive user experience.
 - **Backend Functionality**: Convex provides data storage and real-time capabilities.
 
+## Environment Variables
+
+Ensure the following environment variables are set in your `.env.local` file:
+
+```plaintext
+CONVEX_DEPLOYMENT=your_convex_deployment_id
+NEXT_PUBLIC_CONVEX_URL=your_convex_url
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=your_clerk_publishable_key
+CLERK_SECRET_KEY=your_clerk_secret_key
+CLERK_WEBHOOK_SECRET=your_clerk_webhook_secret
+
 ## Getting Started
 
 1. Clone the repository:
@@ -32,7 +43,7 @@ This project is a Discord clone, built with a modern tech stack to emulate the c
    ```bash
    npm install
    ```
-3. Set up environment variables for Clerk and Convex as per your requirements.
+3. Set up the environment variables in your .env.local file.
 4. Start the development server:
    ```bash
    npm run dev
