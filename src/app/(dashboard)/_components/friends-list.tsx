@@ -20,7 +20,7 @@ export function PendingFriendsList() {
       </h2>
       {friends?.length === 0 ? (
         <FriendListEmpty>
-          You don't have any pending Friend Requests.
+          You don&apos;t have any pending Friend Requests.
         </FriendListEmpty>
       ) : (
         friends?.map((friend, index) => (

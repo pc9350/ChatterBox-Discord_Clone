@@ -1,9 +1,8 @@
-import type { Metadata } from "next";
-import localFont from "next/font/local";
-import "./globals.css";
-import { ConvexClientProvider } from "./convex-client-provider";
-import { ClerkProvider } from "@clerk/nextjs";
 import { Toaster } from "@/components/ui/sonner";
+import { ClerkProvider } from "@clerk/nextjs";
+import type { Metadata } from "next";
+import { ConvexClientProvider } from "./convex-client-provider";
+import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Create Next App",
