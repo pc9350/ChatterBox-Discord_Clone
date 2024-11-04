@@ -26,7 +26,7 @@ This project is a Discord clone, built with a modern tech stack to emulate the c
 
 1. Clone the repository:
    ```bash
-   git clone <https://github.com/pc9350/Discord_Clone.git>
+   git clone https://github.com/pc9350/Discord_Clone.git
    ```
 2. Install dependencies:
    ```bash
