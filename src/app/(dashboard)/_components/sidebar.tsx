@@ -18,7 +18,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import { SignOutButton } from "@clerk/nextjs";
+import { useClerk } from "@clerk/nextjs";
 import { useMutation, useQuery } from "convex/react";
 import { LogOut, MessageSquare, Moon, Sun, User2Icon } from "lucide-react";
 import { useTheme } from "next-themes";
@@ -41,7 +41,12 @@ function OnlineDot({ userId }: { userId: string }) {
 
 export function DashboardSidebar() {
   const user = useQuery(api.functions.user.get);
-  const directMessages = useQuery(api.functions.dm.list);
+  // Skip dm.list when unauthenticated to prevent Unauthorized errors during sign-out
+  const directMessages = useQuery(
+    api.functions.dm.list,
+    user !== undefined && user !== null ? {} : "skip"
+  );
+  const { signOut } = useClerk();
   const pathname = usePathname();
   const { theme, setTheme } = useTheme();
 
@@ -171,13 +176,12 @@ export function DashboardSidebar() {
                       )}
                       {theme === "dark" ? "Light Mode" : "Dark Mode"}
                     </DropdownMenuItem>
-                    <DropdownMenuItem asChild className="text-destructive focus:text-destructive">
-                      <SignOutButton>
-                        <button className="flex items-center gap-2 w-full">
-                          <LogOut className="size-4" />
-                          Sign Out
-                        </button>
-                      </SignOutButton>
+                    <DropdownMenuItem
+                      className="text-destructive focus:text-destructive"
+                      onClick={() => signOut({ redirectUrl: "/sign-in" })}
+                    >
+                      <LogOut className="size-4" />
+                      Sign Out
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
