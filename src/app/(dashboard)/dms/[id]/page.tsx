@@ -2,19 +2,12 @@
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useMutation, useQuery, usePaginatedQuery } from "convex/react";
 import { FunctionReturnType } from "convex/server";
 import {
   EditIcon,
   LoaderIcon,
-  MoreVerticalIcon,
   PlusIcon,
   SendIcon,
   SmileIcon,
@@ -193,7 +186,7 @@ function MessageItem({
     try {
       await updateMessage({ id: message._id, content: editContent.trim() });
       setEditing(false);
-    } catch (error) {
+    } catch {
       toast.error("Failed to edit message");
     }
   };
@@ -202,7 +195,7 @@ function MessageItem({
     setShowEmojiPicker(false);
     try {
       await toggleReaction({ id: message._id, emoji });
-    } catch (error) {
+    } catch {
       toast.error("Failed to add reaction");
     }
   };
