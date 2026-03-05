@@ -1,28 +1,22 @@
-"use client";
-
-import {
-  SidebarProvider
-} from "@/components/ui/sidebar";
-import { RedirectToSignIn } from "@clerk/nextjs";
-import { Authenticated, Unauthenticated } from "convex/react";
+import { SidebarProvider } from "@/components/ui/sidebar";
+import { auth } from "@clerk/nextjs/server";
 import { DashboardSidebar } from "./_components/sidebar";
 
-export default function DashboardLayout({
+export default async function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const { userId, redirectToSignIn } = await auth();
+
+  if (!userId) {
+    return redirectToSignIn();
+  }
+
   return (
-    <>
-      <Authenticated>
-        <SidebarProvider>
-          <DashboardSidebar />
-          {children}
-        </SidebarProvider>
-      </Authenticated>
-      <Unauthenticated>
-        <RedirectToSignIn />
-      </Unauthenticated>
-    </>
+    <SidebarProvider>
+      <DashboardSidebar />
+      {children}
+    </SidebarProvider>
   );
 }

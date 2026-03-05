@@ -1,12 +1,14 @@
 import { v } from "convex/values";
+import { paginationOptsValidator } from "convex/server";
 import { authenticatedMutation, authenticatedQuery } from "./helpers";
 import { internal } from "../_generated/api";
 
 export const list = authenticatedQuery({
   args: {
     directMessage: v.id("directMessages"),
+    paginationOpts: paginationOptsValidator,
   },
-  handler: async (ctx, { directMessage }) => {
+  handler: async (ctx, { directMessage, paginationOpts }) => {
     const member = await ctx.db
       .query("directMessageMembers")
       .withIndex("by_direct_message_user", (q) =>
@@ -19,9 +21,11 @@ export const list = authenticatedQuery({
       .withIndex("by_direct_message", (q) =>
         q.eq("directMessage", directMessage)
       )
-      .collect();
-    return await Promise.all(
-      messages.map(async (message) => {
+      .order("desc")
+      .paginate(paginationOpts);
+      
+    const page = await Promise.all(
+      messages.page.map(async (message) => {
         const sender = await ctx.db.get(message.sender);
         const attachment = message.attachment
           ? await ctx.storage.getUrl(message.attachment)
@@ -29,6 +33,7 @@ export const list = authenticatedQuery({
         return { ...message, sender, attachment };
       })
     );
+    return { ...messages, page };
   },
 });
 

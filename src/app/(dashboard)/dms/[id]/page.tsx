@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation, useQuery, usePaginatedQuery } from "convex/react";
 import { FunctionReturnType } from "convex/server";
 import {
     LoaderIcon,
@@ -35,9 +35,12 @@ export default function MessagePage({
   const directMessage = useQuery(api.functions.dm.get, {
     id,
   });
-  const messages = useQuery(api.functions.message.list, {
-    directMessage: id,
-  });
+  
+  const { results: messages, status, loadMore } = usePaginatedQuery(
+    api.functions.message.list,
+    { directMessage: id },
+    { initialNumItems: 50 }
+  );
 
   if (!directMessage) return null;
 
@@ -50,10 +53,29 @@ export default function MessagePage({
         </Avatar>
         <h1 className="font-semibold">{directMessage.user.username}</h1>
       </header>
-      <ScrollArea className="h-full py-4">
-        {messages?.map((message) => (
-          <MessageItem key={message._id} message={message} />
-        ))}
+      <ScrollArea className="h-full py-4 flex-1">
+        <div className="flex flex-col gap-2">
+           {status === "CanLoadMore" && (
+            <div className="flex justify-center py-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => loadMore(50)}
+              >
+                Load More
+              </Button>
+            </div>
+           )}
+           {status === "LoadingMore" && (
+            <div className="flex justify-center py-2">
+              <LoaderIcon className="animate-spin size-4 text-muted-foreground" />
+            </div>
+           )}
+           
+          {messages?.slice().reverse().map((message) => (
+            <MessageItem key={message._id} message={message as Message} />
+          ))}
+        </div>
       </ScrollArea>
       <TypingIndicator directMessage={id} />
       <MessageInput directMessage={id} />
@@ -77,32 +99,48 @@ function TypingIndicator({
   );
 }
 
-type Message = FunctionReturnType<typeof api.functions.message.list>[number];
+type Message = FunctionReturnType<typeof api.functions.message.list>["page"][number];
+
+import { motion } from "framer-motion";
 
 function MessageItem({ message }: { message: Message }) {
   return (
-    <div className="flex items-center px-4 gap-2 py-2">
-      <Avatar className="size-8 border">
+    <motion.div
+      initial={{ opacity: 0, y: 15, scale: 0.98 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ duration: 0.25, ease: "easeOut" }}
+      className="group flex items-center px-4 gap-3 py-3 hover:bg-black/5 dark:hover:bg-white/5 rounded-md mx-2 transition-colors cursor-pointer"
+    >
+      <Avatar className="size-10 border shadow-sm">
         {message.sender && <AvatarImage src={message.sender?.image} />}
         <AvatarFallback />
       </Avatar>
-      <div className="flex flex-col mr-auto">
-        <p className="text-xs text-muted-foreground">
-          {message.sender?.username ?? "Deleted User"}
-        </p>
-        <p className="text-sm">{message.content}</p>
+      <div className="flex flex-col mr-auto w-full">
+        <div className="flex items-baseline gap-2">
+          <p className="text-[15px] font-medium text-foreground">
+            {message.sender?.username ?? "Deleted User"}
+          </p>
+          <span className="text-[11px] text-muted-foreground font-medium">
+            {new Date(message._creationTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          </span>
+        </div>
+        <p className="text-[15px] text-foreground/90 leading-relaxed mt-0.5">{message.content}</p>
         {message.attachment && (
-          <Image
-            src={message.attachment}
-            width={300}
-            height={300}
-            className="rounded border overflow-hidden"
-            alt="Attachment"
-          />
+          <motion.div whileHover={{ scale: 1.01 }} className="mt-2 text-left w-fit max-w-[80%] rounded-lg overflow-hidden border shadow-sm cursor-pointer">
+            <Image
+              src={message.attachment}
+              width={300}
+              height={300}
+              className="object-cover"
+              alt="Attachment"
+            />
+          </motion.div>
         )}
       </div>
-      <MessageActions message={message} />
-    </div>
+      <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+        <MessageActions message={message} />
+      </div>
+    </motion.div>
   );
 }
 
