@@ -33,6 +33,15 @@ export default defineSchema({
     content: v.string(),
     directMessage: v.id("directMessages"),
     attachment: v.optional(v.id("_storage")),
+    edited: v.optional(v.boolean()),
+    reactions: v.optional(
+      v.array(
+        v.object({
+          emoji: v.string(),
+          users: v.array(v.id("users")),
+        })
+      )
+    ),
   }).index("by_direct_message", ["directMessage"]),
   typingIndicators: defineTable({
     user: v.id("users"),
@@ -41,4 +50,11 @@ export default defineSchema({
   })
     .index("by_direct_message", ["directMessage"])
     .index("by_user_direct_message", ["user", "directMessage"]),
+  presence: defineTable({
+    user: v.id("users"),
+    online: v.boolean(),
+    lastSeen: v.number(),
+  })
+    .index("by_user", ["user"])
+    .index("by_online", ["online"]),
 });

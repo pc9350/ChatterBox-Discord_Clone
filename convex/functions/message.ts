@@ -23,7 +23,7 @@ export const list = authenticatedQuery({
       )
       .order("desc")
       .paginate(paginationOpts);
-      
+
     const page = await Promise.all(
       messages.page.map(async (message) => {
         const sender = await ctx.db.get(message.sender);
@@ -44,6 +44,8 @@ export const create = authenticatedMutation({
     directMessage: v.id("directMessages"),
   },
   handler: async (ctx, { content, attachment, directMessage }) => {
+    if (content.length > 2000)
+      throw new Error("Message cannot exceed 2000 characters");
     const member = await ctx.db
       .query("directMessageMembers")
       .withIndex("by_direct_message_user", (q) =>
@@ -56,11 +58,28 @@ export const create = authenticatedMutation({
       attachment,
       directMessage,
       sender: ctx.user._id,
+      reactions: [],
     });
     await ctx.scheduler.runAfter(0, internal.functions.typing.remove, {
       directMessage,
       user: ctx.user._id,
     });
+  },
+});
+
+export const update = authenticatedMutation({
+  args: {
+    id: v.id("messages"),
+    content: v.string(),
+  },
+  handler: async (ctx, { id, content }) => {
+    if (content.length > 2000)
+      throw new Error("Message cannot exceed 2000 characters");
+    const message = await ctx.db.get(id);
+    if (!message) throw new Error("Message does not exist");
+    if (message.sender !== ctx.user._id)
+      throw new Error("You are not the sender of this message");
+    await ctx.db.patch(id, { content, edited: true });
   },
 });
 
@@ -77,6 +96,36 @@ export const remove = authenticatedMutation({
     await ctx.db.delete(id);
     if (message.attachment) {
       await ctx.storage.delete(message.attachment);
+    }
+  },
+});
+
+export const toggleReaction = authenticatedMutation({
+  args: {
+    id: v.id("messages"),
+    emoji: v.string(),
+  },
+  handler: async (ctx, { id, emoji }) => {
+    const message = await ctx.db.get(id);
+    if (!message) throw new Error("Message does not exist");
+    const reactions = message.reactions ?? [];
+    const existing = reactions.find((r) => r.emoji === emoji);
+    if (existing) {
+      const hasUser = existing.users.includes(ctx.user._id);
+      const updatedUsers = hasUser
+        ? existing.users.filter((u) => u !== ctx.user._id)
+        : [...existing.users, ctx.user._id];
+      const updatedReactions =
+        updatedUsers.length === 0
+          ? reactions.filter((r) => r.emoji !== emoji)
+          : reactions.map((r) =>
+              r.emoji === emoji ? { ...r, users: updatedUsers } : r
+            );
+      await ctx.db.patch(id, { reactions: updatedReactions });
+    } else {
+      await ctx.db.patch(id, {
+        reactions: [...reactions, { emoji, users: [ctx.user._id] }],
+      });
     }
   },
 });

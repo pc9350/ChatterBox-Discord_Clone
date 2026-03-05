@@ -36,15 +36,51 @@ export const listAccepted = authenticatedQuery({
 });
 
 export const createFriendRequest = authenticatedMutation({
-    args: {username: v.string()},
+  args: { username: v.string() },
   handler: async (ctx, { username }) => {
-    const user = await ctx.db.query("users").withIndex("by_username", (q) =>
-      q.eq("username", username)
-    ).unique();
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_username", (q) => q.eq("username", username))
+      .unique();
     if (!user) {
       throw new Error("User not found");
     } else if (user._id === ctx.user._id) {
       throw new Error("Cannot add yourself as a friend");
+    }
+    // Duplicate request guard — check both directions
+    const existing1 = await ctx.db
+      .query("friends")
+      .withIndex("by_user1_status", (q) =>
+        q.eq("user1", ctx.user._id).eq("status", "pending")
+      )
+      .filter((q) => q.eq(q.field("user2"), user._id))
+      .first();
+    const existing2 = await ctx.db
+      .query("friends")
+      .withIndex("by_user2_status", (q) =>
+        q.eq("user2", ctx.user._id).eq("status", "pending")
+      )
+      .filter((q) => q.eq(q.field("user1"), user._id))
+      .first();
+    const alreadyAccepted1 = await ctx.db
+      .query("friends")
+      .withIndex("by_user1_status", (q) =>
+        q.eq("user1", ctx.user._id).eq("status", "accepted")
+      )
+      .filter((q) => q.eq(q.field("user2"), user._id))
+      .first();
+    const alreadyAccepted2 = await ctx.db
+      .query("friends")
+      .withIndex("by_user2_status", (q) =>
+        q.eq("user2", ctx.user._id).eq("status", "accepted")
+      )
+      .filter((q) => q.eq(q.field("user1"), user._id))
+      .first();
+    if (existing1 || existing2) {
+      throw new Error("Friend request already sent");
+    }
+    if (alreadyAccepted1 || alreadyAccepted2) {
+      throw new Error("You are already friends with this user");
     }
     await ctx.db.insert("friends", {
       user1: ctx.user._id,
@@ -58,7 +94,7 @@ export const updateStatus = authenticatedMutation({
   args: {
     id: v.id("friends"),
     status: v.union(v.literal("accepted"), v.literal("rejected")),
-},
+  },
   handler: async (ctx, { id, status }) => {
     const friend = await ctx.db.get(id);
     if (!friend) {
